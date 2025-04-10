@@ -1,0 +1,41 @@
+- Click "**Commit new file**".
+
+---
+
+## **Step 4: Recommended Initial Project Structure**
+Create the directories and folders by clicking "**Add file → Create new file**" on GitHub and typing folder names as follows:
+
+- `src/` (Main source code)
+- `docs/` (Documentation and guides)
+- `scripts/` (Utility scripts)
+- `examples/` (Demonstrations and usage examples)
+- `models/` (AI and neural models)
+- `tests/` (Automated testing scripts)
+
+> **Note:** On GitHub, to create folders you simply type the folder name followed by a `/` and then a placeholder file like `.gitkeep` or `README.md`.
+
+Example:  
+src/.gitkeep docs/.gitkeep scripts/.gitkeep examples/.gitkeep models/.gitkeep tests/.gitkeep
+
+yaml
+Copy
+Edit
+
+---
+
+## **Step 5: Optional—Set up Continuous Integration (CI)**
+
+- Go to your repository → **Actions** tab.
+- Choose a pre-defined workflow such as "**Python application**".
+- Follow GitHub’s guide to automatically run tests when changes are made.
+
+---
+
+### **What to do next after setup:**
+- Clone the repository to your PC to begin coding.
+- Use AI tools (like me) to help you develop initial software functionalities, debug errors, and guide development.
+- Commit and push changes regularly.
+
+---
+
+**Would you like guidance on any specific step above, or help with the next steps 
