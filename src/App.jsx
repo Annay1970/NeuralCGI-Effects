@@ -1,106 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react'
-import Webcam from 'react-webcam'
-import * as tf from '@tensorflow/tfjs'
-import * as faceapi from '@tensorflow-models/face-landmarks-detection'
-import { SelfieSegmentation } from '@mediapipe/selfie_segmentation'
+import React, { useState, useCallback, useRef } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { motion } from 'framer-motion';
+import { HexColorPicker } from 'react-colorful';
+import { FiUpload, FiSliders, FiDownload } from 'react-icons/fi';
+import * as tf from '@tensorflow/tfjs';
+import * as ml5 from 'ml5';
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [effect, setEffect] = useState('none')
-  const [model, setModel] = useState(null)
-  const webcamRef = useRef(null)
-  const canvasRef = useRef(null)
+  const [video, setVideo] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [effect, setEffect] = useState('neural-style');
+  const [color, setColor] = useState('#6366f1');
+  const [intensity, setIntensity] = useState(50);
+  const canvasRef = useRef(null);
+  const videoRef = useRef(null);
+
+  const onDrop = useCallback((acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (file?.type.startsWith('video/')) {
+      setVideo(URL.createObjectURL(file));
+    }
+  }, []);
+
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop,
+    accept: { 'video/*': [] },
+    maxFiles: 1
+  });
 
   const effects = [
-    { id: 'none', name: 'No Effect' },
-    { id: 'fire', name: 'Fire Effect' },
-    { id: 'matrix', name: 'Matrix Effect' },
-    { id: 'neon', name: 'Neon Glow' }
-  ]
+    { id: 'neural-style', name: 'Neural Style Transfer' },
+    { id: 'cinematic', name: 'Cinematic Grade' },
+    { id: 'hollywood', name: 'Hollywood FX' },
+    { id: 'custom', name: 'Custom Effect' }
+  ];
 
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        await tf.ready()
-        const segmenter = new SelfieSegmentation({locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
-        }})
-        segmenter.setOptions({
-          modelSelection: 1,
-        })
-        setModel(segmenter)
-        setIsLoading(false)
-      } catch (error) {
-        console.error('Error loading models:', error)
-      }
-    }
-
-    loadModels()
-  }, [])
-
-  const handleUserMedia = () => {
-    setIsLoading(false)
-  }
-
-  const applyEffect = async (videoElement) => {
-    if (!model || !videoElement) return
-
+  const processVideo = async () => {
+    if (!video) return;
+    setProcessing(true);
+    
     try {
-      const results = await model.send({image: videoElement})
-      // Effect processing would go here
+      // Initialize AI models
+      await tf.ready();
+      const styleModel = await ml5.styleTransfer('models/udnie');
+      
+      // Process video frames
+      const videoEl = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      videoEl.addEventListener('play', async () => {
+        while (!videoEl.paused && !videoEl.ended) {
+          ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+          const processedFrame = await styleModel.transfer(canvas);
+          ctx.drawImage(processedFrame, 0, 0);
+          await tf.nextFrame();
+        }
+      });
+      
     } catch (error) {
-      console.error('Error applying effect:', error)
+      console.error('Error processing video:', error);
+    } finally {
+      setProcessing(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
+    <div className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-8">NeuralCGI Effects</h1>
+        <h1 className="text-4xl font-bold mb-8">NeuralCGI Effects</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 bg-black rounded-lg overflow-hidden shadow-xl">
-            {isLoading && (
-              <div className="flex items-center justify-center h-[480px]">
-                <div className="text-white">Loading camera...</div>
+          <div className="md:col-span-2">
+            {!video ? (
+              <div {...getRootProps()} className="dropzone h-[480px] flex items-center justify-center">
+                <input {...getInputProps()} />
+                <div className="text-center">
+                  <FiUpload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-xl font-semibold">Drop your video here</p>
+                  <p className="text-gray-400">or click to select</p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  src={video}
+                  className="w-full"
+                  controls
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{ display: processing ? 'block' : 'none' }}
+                />
               </div>
             )}
-            <Webcam
-              ref={webcamRef}
-              className="w-full"
-              mirrored
-              onUserMedia={handleUserMedia}
-              onLoadedData={() => setIsLoading(false)}
-            />
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full"
-              style={{ display: 'none' }}
-            />
           </div>
 
-          <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-white mb-4">Effects</h2>
-            <div className="space-y-3">
-              {effects.map((e) => (
-                <button
-                  key={e.id}
-                  onClick={() => setEffect(e.id)}
-                  className={`w-full px-4 py-2 rounded-lg text-left transition ${
-                    effect === e.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {e.name}
-                </button>
-              ))}
+          <div className="space-y-6">
+            <div className="glass rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Effects</h2>
+              <div className="space-y-3">
+                {effects.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={() => setEffect(e.id)}
+                    className={`w-full px-4 py-2 rounded-lg text-left transition ${
+                      effect === e.id
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {e.name}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <div className="glass rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Settings</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Effect Color
+                  </label>
+                  <HexColorPicker color={color} onChange={setColor} />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Intensity
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={intensity}
+                    onChange={(e) => setIntensity(e.target.value)}
+                    className="slider"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={processVideo}
+              disabled={!video || processing}
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {processing ? 'Processing...' : 'Apply Effect'}
+            </motion.button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

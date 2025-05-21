@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+}
+
+body {
+  @apply bg-gray-900 text-white;
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-lg;
+}
+
+.btn-primary {
+  @apply px-4 py-2 bg-primary hover:bg-primary-dark transition rounded-lg;
+}
+
+.effect-preview {
+  @apply relative overflow-hidden rounded-lg;
+}
+
+.effect-preview::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-t from-black/60 to-transparent;
+}
+
+.dropzone {
+  @apply border-2 border-dashed border-gray-600 rounded-lg p-8 text-center 
+         hover:border-primary transition cursor-pointer;
+}
+
+.slider {
+  @apply w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  @apply w-4 h-4 bg-primary rounded-full appearance-none;
+}
