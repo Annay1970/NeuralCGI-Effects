@@ -16,7 +16,8 @@
     "react-dom": "^18.2.0",
     "react-webcam": "^7.1.1",
     "@tensorflow-models/face-landmarks-detection": "^1.0.5",
-    "three": "^0.155.0"
+    "three": "^0.155.0",
+    "react-router-dom": "^6.15.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
