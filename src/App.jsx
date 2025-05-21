@@ -1,13 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Webcam from 'react-webcam'
-import * as faceapi from '@tensorflow-models/face-landmarks-detection'
 import * as tf from '@tensorflow/tfjs'
+import * as faceapi from '@tensorflow-models/face-landmarks-detection'
 import { SelfieSegmentation } from '@mediapipe/selfie_segmentation'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [effect, setEffect] = useState('none')
-  const webcamRef = React.useRef(null)
+  const [model, setModel] = useState(null)
+  const webcamRef = useRef(null)
+  const canvasRef = useRef(null)
 
   const effects = [
     { id: 'none', name: 'No Effect' },
@@ -16,9 +18,39 @@ function App() {
     { id: 'neon', name: 'Neon Glow' }
   ]
 
-  // Handle camera permissions
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await tf.ready()
+        const segmenter = new SelfieSegmentation({locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+        }})
+        segmenter.setOptions({
+          modelSelection: 1,
+        })
+        setModel(segmenter)
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Error loading models:', error)
+      }
+    }
+
+    loadModels()
+  }, [])
+
   const handleUserMedia = () => {
     setIsLoading(false)
+  }
+
+  const applyEffect = async (videoElement) => {
+    if (!model || !videoElement) return
+
+    try {
+      const results = await model.send({image: videoElement})
+      // Effect processing would go here
+    } catch (error) {
+      console.error('Error applying effect:', error)
+    }
   }
 
   return (
@@ -27,7 +59,6 @@ function App() {
         <h1 className="text-4xl font-bold text-white mb-8">NeuralCGI Effects</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Main preview area */}
           <div className="md:col-span-2 bg-black rounded-lg overflow-hidden shadow-xl">
             {isLoading && (
               <div className="flex items-center justify-center h-[480px]">
@@ -41,9 +72,13 @@ function App() {
               onUserMedia={handleUserMedia}
               onLoadedData={() => setIsLoading(false)}
             />
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 w-full h-full"
+              style={{ display: 'none' }}
+            />
           </div>
 
-          {/* Controls sidebar */}
           <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
             <h2 className="text-xl font-semibold text-white mb-4">Effects</h2>
             <div className="space-y-3">
